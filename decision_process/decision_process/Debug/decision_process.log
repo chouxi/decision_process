@@ -1,3 +1,4 @@
-﻿  pomdp.cpp
+﻿  viterbi.cpp
+d:\courses\intro to ai\decision_process\decision_process\decision_process\viterbi.cpp(57): warning C4018: '<': signed/unsigned mismatch
   decision_process.vcxproj -> D:\Courses\Intro to AI\decision_process\decision_process\Debug\decision_process.exe
   decision_process.vcxproj -> D:\Courses\Intro to AI\decision_process\decision_process\Debug\decision_process.pdb (Full PDB)

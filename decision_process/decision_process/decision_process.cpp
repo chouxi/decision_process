@@ -3,18 +3,21 @@
 
 #include "stdafx.h"
 #include "pomdp.h"
+#include "viterbi.h"
 
 int main()
 {
-	pomdp *p = new pomdp();
 	std::vector<int> actions = { RIGHT, RIGHT, DOWN, DOWN };
 	std::vector<char> status = { NORMAL, NORMAL, HIGH_WAY, HIGH_WAY };
 	std::vector < std::vector<map_str >> map = { {{HIGH_WAY}, {HIGH_WAY}, {HARD}}
 										,{{NORMAL}, {NORMAL}, {NORMAL}},
 										{{NORMAL},{BLOCK},{HIGH_WAY}} };
-	p->do_pomdp(map, status, actions);
+	/*pomdp *p = new pomdp();
+	p->do_pomdp(map, status, actions);*/
+	viterbi *v = new viterbi();
+	v->do_viterbi(map, status, actions);
 	system("pause");
-	delete p;
+	delete v;
     return 0;
 }
 
