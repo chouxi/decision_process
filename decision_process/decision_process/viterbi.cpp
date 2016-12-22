@@ -34,20 +34,51 @@ bool viterbi::initial(std::vector<std::vector<map_str>>& map) {
 	return true;
 }
 
-void viterbi::do_viterbi(std::vector<std::vector<map_str>>& map, std::vector<char>& status, std::vector<int>& actions) {
+void viterbi::do_viterbi(std::vector<std::vector<map_str>>& map, std::vector<std::pair<char, std::pair<int, int>>>& path, std::vector<int>& actions) {
 	if (!initial(map)) return;
-	int status_size = status.size();
+	int status_size = path.size();
 	int action_size = actions.size();
 	if (!status_size || status_size != action_size) return;
+	std::vector<char> status(path.size(), '\0');
+	std::vector<std::pair<int, int>> location(path.size());
+	for (int i = 0; i < path.size(); ++i) {
+		status[i] = path[i].first;
+		location[i].first = path[i].second.first;
+		location[i].second = path[i].second.second;
+	}
 	for (int i = 0; i < action_size; ++i) {
-		std::vector<std::vector<beli_stur>> tmp_beli(row, std::vector<beli_stur>(col));;
+		std::vector<std::vector<beli_stur>> tmp_beli(row, std::vector<beli_stur>(col));
 		transition(map, tmp_beli, actions[i], status[i], i);
 		set_beli_status(tmp_beli);
+		/*if (i == 9) {
+			std::vector <beli_stur> mlp = get_mls(10);
+			for (int i = 0; i < mlp.size(); ++i) {
+				out_mls(mlp[i].parent, i);
+			}
+		}
+		else if (i == 49) {
+			std::vector <beli_stur> mlp = get_mls(10);
+			for (int i = 0; i < mlp.size(); ++i) {
+				out_mls(mlp[i].parent, i);
+			}
+		}
+		else if (i == 99) {
+			std::vector <beli_stur> mlp = get_mls(10);
+			for (int i = 0; i < mlp.size(); ++i) {
+				out_mls(mlp[i].parent, i);
+			}
+		}*/
 	}
-	std::vector<beli_stur> path = get_mls();
-	for (int i = path.size() - 1; i >= 0; --i) {
-		std::cout << path[i].parent.first << ","<< path[i].parent.second << "," << path[i].probability << std::endl;
+	std::vector <beli_stur> mlp = get_mls(0);
+	std::vector<beli_stur> result;
+	for (int i = 0; i < mlp.size(); ++i) {
+		result = out_mls(mlp[i].parent, i);
 	}
+	/*for (int i = result.size() - 1; i >= 0; --i) {
+		std::cout << result[i].parent.first << ","<< result[i].parent.second << " " << result[i].probability << std::endl;
+	}*/
+	std::reverse(result.begin(), result.end());
+	calc_error(result, location);
 }
 
 void viterbi::transition(std::vector<std::vector<map_str>>& map, std::vector<std::vector<beli_stur>>& tmp_beli, int action, char status, int idx) {
@@ -117,24 +148,13 @@ void viterbi::set_beli_status(std::vector<std::vector<beli_stur>>& tmp_beli) {
 	}
 }
 
-std::vector<beli_stur> viterbi::get_mls() {
+std::vector<beli_stur> viterbi::out_mls(const std::pair<int,int>& mlp, int idx) {
 	int len_action = this->beli_status[0][0].size();
-	beli_stur max_res = beli_status[0][0][len_action - 1];
+	std::string out_file = "./ans/f/path_" + std::to_string(len_action) + "_" + std::to_string(idx) + ".txt";
+	beli_stur max_res = beli_status[mlp.first][mlp.second][len_action - 1];
 	std::vector<beli_stur> mls;
-	std::pair<int, int> parent = { -1,-1 };
-	for (int i = 0; i < row; ++i) {
-		for (int j = 0; j < col; ++j) {
-			if (this->beli_status[i][j][len_action - 1].probability > max_res.probability) {
-				max_res.probability = this->beli_status[i][j][len_action - 1].probability;
-				max_res.parent = { i,j };
-				parent = this->beli_status[i][j][len_action - 1].parent;
-			}
-		}
-	}
-	if (parent == std::make_pair(-1, -1)) {
-		std::cout << "end_point fail to find" << std::endl;
-		return mls;
-	}
+	std::pair<int, int> parent = max_res.parent;
+	max_res.parent = { mlp.first, mlp.second };
 	mls.push_back(max_res);
 	for (int i = len_action - 2; i >= 0; --i) {
 		int x = parent.first, y = parent.second;
@@ -143,5 +163,43 @@ std::vector<beli_stur> viterbi::get_mls() {
 		parent = this->beli_status[x][y][i].parent;
 		mls.push_back(max_res);
 	}
+	/*std::ofstream out_f;
+	out_f.open(out_file);
+	for (int i = mls.size() - 1; i >= 0; --i) {
+		out_f << mls[i].parent.first << ","<< mls[i].parent.second << " " << mls[i].probability << std::endl;
+	}
+	out_f.close();*/
 	return mls;
+}
+std::vector <beli_stur> viterbi::get_mls(int count) {
+	int len_action = this->beli_status[0][0].size();
+	beli_stur max_res = beli_status[0][0][len_action - 1];
+	std::priority_queue<beli_stur, std::vector<beli_stur>, cmp> max_prob;
+	std::vector<beli_stur> mls;
+	std::pair<int, int> parent = { -1,-1 };
+	for (int i = 0; i < row; ++i) {
+		for (int j = 0; j < col; ++j) {
+			beli_stur tmp = this->beli_status[i][j][len_action - 1];
+			tmp.parent = { i,j };
+			max_prob.push(tmp);
+		}
+	}
+	std::vector<beli_stur> result;
+	while (count-- >= 0) {
+		result.push_back(max_prob.top());
+		max_prob.pop();
+	}
+	return result;
+}
+
+std::vector<int> viterbi::get_error() {
+	return this->error;
+}
+void viterbi::calc_error(std::vector<beli_stur>& result, const std::vector<std::pair<int, int>>& locations) {
+	this->error.resize(locations.size(), 0);
+	result.erase(result.begin());
+	for (int i = 0; i < result.size(); ++i) {
+		std::pair<int, int> est_p = result[i].parent;
+		error[i] = abs(est_p.first - locations[i].first) + abs(est_p.second - locations[i].second);
+	}
 }
